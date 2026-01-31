@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Seismic Fortune</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+
+<style>
+body{margin:0;background:#f3e8e8;font-family:Inter,sans-serif;color:#1a1a1a}
+.fortune{animation:fade 1.2s forwards;opacity:0;transform:translateY(20px)}
+@keyframes fade{to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+
+<body class="flex flex-col min-h-screen px-8 py-8">
+
+<!-- Header -->
+<header class="flex justify-between items-center">
+<div class="flex items-center gap-3">
+<img src="logo.png" class="w-12 h-12 object-contain" alt="Seismic Logo">
+<span class="font-serif text-2xl">Seismic Fortune</span>
+</div>
+<nav class="hidden md:flex gap-8 text-sm tracking-widest uppercase text-[#5d3a58]">
+<span>Mystery</span>
+<span>Archive</span>
+<span>Essence</span>
+</nav>
+</header>
+
+<!-- Main -->
+<main class="flex flex-col items-center justify-center text-center flex-grow">
+
+<h1 class="font-serif text-7xl mt-20">Seismic Fortune</h1>
+<p class="text-[#5d3a58] mb-12">what you cannot see is always moving</p>
+
+<button id="btn" class="px-12 py-6 bg-black text-white rounded-full tracking-widest uppercase mb-16">
+Reveal what is hidden today
+</button>
+
+<p id="fortune" class="font-serif text-4xl text-[#5d3a58] max-w-4xl"></p>
+
+</main>
+
+<!-- Footer -->
+<footer class="text-xs text-[#8b5a7e] text-center pb-6">
+© 2026 Seismic Systems
+</footer>
+
+<script>
+const fortuneDatabase = [
+"Something already moved before you arrived.",
+"You are walking through a moment disguised as ordinary.",
+"What you missed was meant for you later.",
+"The important shift happened in silence.",
+"You are ahead of the explanation.",
+"The reason will appear after the result.",
+"You are not late. You are precise.",
+"The path changed before you noticed.",
+"You are where unseen things begin.",
+"The signal was received before it was sent.",
+"You are moving inside a plan you cannot read yet.",
+"Your absence somewhere is creating presence elsewhere.",
+"What you think is delay is alignment.",
+"You are part of a sequence still unfolding.",
+"The answer is already in motion.",
+"You walked into this moment long ago.",
+"You are operating ahead of awareness.",
+"What you cannot track is guiding you.",
+"The right thing already happened quietly.",
+"You are walking through an invisible correction.",
+"The shift was subtle but permanent.",
+"You are closer than your mind allows.",
+"The outcome exists before the effort.",
+"Your steps are being measured by something larger.",
+"The reason will arrive after the effect.",
+"You are in a moment that will make sense later.",
+"What you overlooked is working for you.",
+"The real movement happened off-screen.",
+"You are ahead of the reveal.",
+"What feels unclear is intentional.",
+"You are walking inside hidden progress.",
+"The alignment is happening without permission.",
+"You are positioned where rare things occur.",
+"The scene changed without announcement.",
+"You are exactly where timing matters.",
+"What you do not see is protecting you.",
+"The unseen part is doing the heavy lifting.",
+"You are being prepared without noise.",
+"What is quiet now will speak loudly later.",
+"You are walking through invisible upgrades.",
+"The delay was a redirection.",
+"You are already inside the answer.",
+"What you felt was correct but premature.",
+"You are ahead of your understanding.",
+"The outcome was sealed before you noticed."
+];
+
+const btn=document.getElementById('btn');
+const fortune=document.getElementById('fortune');
+
+btn.onclick=()=>{
+fortune.classList.remove('fortune');
+void fortune.offsetWidth;
+fortune.textContent=fortuneDatabase[Math.floor(Math.random()*fortuneDatabase.length)];
+fortune.classList.add('fortune');
+};
+</script>
+
+</body>
+</html>
