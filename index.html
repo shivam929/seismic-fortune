@@ -1,1030 +1,767 @@
 <!DOCTYPE html>
-<html lang="en" class="scroll-smooth">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Seismic Stype Linter & Guide</title>
+    <title>Seismic Fortune | The Invisible Layer</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'dusty-mauve': '#C9A4B8',
-                        'warm-beige': '#E8D8C3',
-                        'warm-brown': '#8B6F61',
-                        'soft-white': '#FAF7F5',
-                        'soft-cream': '#F5EDE6',
-                    },
-                    fontFamily: {
-                        'sans': ['Inter', 'sans-serif'],
-                        'mono': ['JetBrains Mono', 'monospace'],
-                    }
-                }
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Inter:wght@200;300;400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --mauve-light: #f3e8e8;
+            --mauve-mid: #c4a8b8;
+            --mauve-deep: #5d3a58;
+            --void: #0f0c11;
+            --text-main: #1a1a1a;
+        }
+
+        body {
+            margin: 0;
+            overflow-x: hidden;
+            background-color: var(--mauve-light);
+            font-family: 'Inter', sans-serif;
+            color: var(--text-main);
+        }
+
+        /* Grain Overlay */
+        .noise-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 50;
+            opacity: 0.07;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+
+        /* Typography */
+        .font-serif { font-family: 'Cormorant Garamond', serif; }
+        .font-sans { font-family: 'Inter', sans-serif; }
+
+        /* WebGL Canvas */
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        /* UI Layer */
+        .ui-layer {
+            position: relative;
+            z-index: 10;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* Magnetic Button Effect */
+        .magnetic-btn {
+            transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        /* Fortune Text Animation */
+        .fortune-reveal {
+            animation: textReveal 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0;
+            transform: translateY(20px);
+            filter: blur(10px);
+        }
+
+        @keyframes textReveal {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+                filter: blur(0);
             }
         }
-    </script>
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #FAF7F5 0%, #E8D8C3 50%, #C9A4B8 100%);
-            background-attachment: fixed;
-        }
-        
-        .glass-card {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            box-shadow: 0 8px 32px rgba(139, 111, 97, 0.1);
-        }
-        
-        .glass-card-dark {
-            background: rgba(139, 111, 97, 0.05);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(201, 164, 184, 0.3);
-        }
-        
-        .reveal {
-            opacity: 0;
-            transform: translateY(30px);
-            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        .reveal.active {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        
-        .hover-lift {
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        
-        .hover-lift:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 40px rgba(139, 111, 97, 0.15);
-        }
-        
-        .gradient-text {
-            background: linear-gradient(135deg, #8B6F61 0%, #C9A4B8 100%);
+
+        /* Gradient Text */
+        .text-gradient {
+            background: linear-gradient(135deg, #5d3a58 0%, #8b5a7e 50%, #c4a8b8 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
-        
-        #monaco-editor {
-            height: 500px;
-            border-radius: 12px;
-            overflow: hidden;
+
+        /* Glassmorphism Card */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 8px 32px 0 rgba(93, 58, 88, 0.1);
         }
         
-        .error-line {
-            background-color: rgba(239, 68, 68, 0.15);
-            border-left: 3px solid #ef4444;
+        .fade-enter {
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.8s ease, transform 0.8s ease;
         }
-        
-        .warning-line {
-            background-color: rgba(245, 158, 11, 0.15);
-            border-left: 3px solid #f59e0b;
-        }
-        
-        .code-keyword { color: #C9A4B8; font-weight: 600; }
-        .code-type { color: #8B6F61; }
-        .code-function { color: #6B7280; }
-        .code-comment { color: #A1A1AA; font-style: italic; }
-        
-        @media (max-width: 768px) {
-            #monaco-editor {
-                height: 350px;
-            }
+        .fade-enter-active {
+            opacity: 1;
+            transform: translateY(0);
         }
     </style>
 </head>
-<body class="text-gray-800 antialiased overflow-x-hidden">
+<body>
 
-    <!-- Header -->
-    <header class="fixed top-0 left-0 right-0 z-50 glass-card border-b border-white/50">
-        <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <img src="logo.png" alt="Seismic" class="h-8 w-auto opacity-90 mr-1" onerror="this.style.display='none'">
-                <span class="font-semibold text-warm-brown tracking-tight">Seismic</span>
-            </div>
-            <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600">
-                <a href="#what-is-stype" class="hover:text-warm-brown transition-colors">What is stype</a>
-                <a href="#common-mistakes" class="hover:text-warm-brown transition-colors">Common Mistakes</a>
-                <a href="#linter" class="hover:text-warm-brown transition-colors">Linter</a>
-                <a href="#why-matters" class="hover:text-warm-brown transition-colors">Why It Matters</a>
-            </nav>
-            <a href="#linter" class="hidden md:inline-flex px-5 py-2.5 bg-warm-brown text-white text-sm font-medium rounded-full hover:bg-opacity-90 transition-all hover:shadow-lg">
-                Try the Linter
-            </a>
-        </div>
-    </header>
+    <!-- Noise Texture -->
+    <div class="noise-overlay"></div>
 
-    <!-- Hero Section -->
-    <section class="min-h-screen flex items-center justify-center pt-20 pb-16 px-6 relative overflow-hidden">
-        <div class="absolute inset-0 opacity-30">
-            <div class="absolute top-20 left-10 w-72 h-72 bg-dusty-mauve rounded-full mix-blend-multiply filter blur-3xl animate-pulse"></div>
-            <div class="absolute bottom-20 right-10 w-96 h-96 bg-warm-beige rounded-full mix-blend-multiply filter blur-3xl animate-pulse delay-1000"></div>
-        </div>
+    <!-- 3D Background -->
+    <div id="canvas-container"></div>
+
+    <!-- Main UI -->
+    <div class="ui-layer px-6 py-8 md:px-12 md:py-10">
         
-        <div class="max-w-4xl mx-auto text-center relative z-10 reveal active">
-            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/60 border border-dusty-mauve/30 mb-8">
-                <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                <span class="text-sm font-medium text-warm-brown">Seismic Encrypted L1</span>
-            </div>
-            
-            <h1 class="text-5xl md:text-7xl font-semibold tracking-tight mb-6 leading-tight">
-                Understand and secure your <span class="gradient-text">Seismic contracts</span>
-            </h1>
-            
-            <p class="text-xl md:text-2xl text-gray-600 mb-10 max-w-2xl mx-auto leading-relaxed">
-                Learn how <code class="bg-white/50 px-2 py-1 rounded text-warm-brown font-mono text-lg">stype</code> works and catch mistakes instantly.
-            </p>
-            
-            <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                <a href="#linter" class="px-8 py-4 bg-warm-brown text-white rounded-full font-medium hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-2">
-                    <span>Try the linter</span>
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
-                </a>
-                <a href="#what-is-stype" class="px-8 py-4 bg-white/60 text-warm-brown border border-warm-brown/20 rounded-full font-medium hover:bg-white/80 transition-all">
-                    Learn more
-                </a>
-            </div>
-        </div>
-    </section>
-
-    <!-- What is stype Section -->
-    <section id="what-is-stype" class="py-24 px-6">
-        <div class="max-w-6xl mx-auto">
-            <div class="text-center mb-16 reveal">
-                <h2 class="text-4xl font-semibold tracking-tight text-gray-900 mb-4">What is <code class="text-dusty-mauve">stype</code>?</h2>
-                <p class="text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
-                    Shielded types that hide values from observers while maintaining full computation capabilities.
-                </p>
-            </div>
-
-            <div class="grid md:grid-cols-3 gap-8 mb-16">
-                <div class="glass-card rounded-2xl p-8 hover-lift reveal">
-                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-dusty-mauve/20 to-dusty-mauve/40 flex items-center justify-center mb-6">
-                        <span class="font-mono font-bold text-warm-brown text-xl">suint</span>
-                    </div>
-                    <h3 class="text-xl font-semibold tracking-tight mb-3 text-gray-900">Shielded Integers</h3>
-                    <p class="text-gray-600 leading-relaxed mb-4">
-                        <code class="bg-white/50 px-1.5 py-0.5 rounded text-sm">suint256</code>, <code class="bg-white/50 px-1.5 py-0.5 rounded text-sm">sint128</code>
-                    </p>
-                    <p class="text-sm text-gray-600 leading-relaxed">
-                        Unsigned and signed integers that appear as <code class="text-warm-brown">0x000</code> to observers during execution and storage.
-                    </p>
-                </div>
-
-                <div class="glass-card rounded-2xl p-8 hover-lift reveal" style="transition-delay: 100ms;">
-                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-warm-brown/20 to-warm-brown/40 flex items-center justify-center mb-6">
-                        <span class="font-mono font-bold text-warm-brown text-xl">sbool</span>
-                    </div>
-                    <h3 class="text-xl font-semibold tracking-tight mb-3 text-gray-900">Shielded Booleans</h3>
-                    <p class="text-gray-600 leading-relaxed mb-4">
-                        <code class="bg-white/50 px-1.5 py-0.5 rounded text-sm">sbool</code>
-                    </p>
-                    <p class="text-sm text-gray-600 leading-relaxed">
-                        True/false values that remain hidden. Perfect for private voting, access controls, and confidential state management.
-                    </p>
-                </div>
-
-                <div class="glass-card rounded-2xl p-8 hover-lift reveal" style="transition-delay: 200ms;">
-                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-warm-beige/40 to-warm-beige/60 flex items-center justify-center mb-6">
-                        <span class="font-mono font-bold text-warm-brown text-xl">saddr</span>
-                    </div>
-                    <h3 class="text-xl font-semibold tracking-tight mb-3 text-gray-900">Shielded Addresses</h3>
-                    <p class="text-gray-600 leading-relaxed mb-4">
-                        <code class="bg-white/50 px-1.5 py-0.5 rounded text-sm">saddress</code>
-                    </p>
-                    <p class="text-sm text-gray-600 leading-relaxed">
-                        Ethereum addresses that remain anonymous. Essential for private transactions and confidential identity management.
-                    </p>
-                </div>
-            </div>
-
-            <!-- Visual Explanation -->
-            <div class="glass-card rounded-3xl p-8 md:p-12 reveal">
-                <h3 class="text-2xl font-semibold tracking-tight mb-8 text-center text-gray-900">The Observer vs Developer View</h3>
-                
-                <div class="grid md:grid-cols-2 gap-8">
-                    <div class="space-y-4">
-                        <div class="bg-gray-900 rounded-xl p-6 font-mono text-sm overflow-x-auto">
-                            <div class="text-gray-400 mb-2">// Developer sees actual values</div>
-                            <div class="space-y-1">
-                                <div><span class="code-keyword">mapping</span>(<span class="code-type">address</span> => <span class="code-type">suint256</span>) <span class="code-keyword">balanceOf</span>;</div>
-                                <div class="mt-4"><span class="code-keyword">function</span> <span class="code-function">transfer</span>(<span class="code-type">address</span> to, <span class="code-type">suint256</span> amount) {</div>
-                                <div class="pl-4 text-green-400">// balanceOf[msg.sender]: 200</div>
-                                <div class="pl-4 text-green-400">// amount: 12</div>
-                                <div class="pl-4"><span class="code-keyword">balanceOf</span>[msg.sender] -= amount; <span class="code-comment">// 200 → 188</span></div>
-                                <div class="pl-4"><span class="code-keyword">balanceOf</span>[to] += amount; <span class="code-comment">// 50 → 62</span></div>
-                                <div>}</div>
-                            </div>
-                        </div>
-                        <p class="text-center text-sm font-medium text-green-700">Developer View ✓</p>
-                    </div>
-
-                    <div class="space-y-4">
-                        <div class="bg-gray-900 rounded-xl p-6 font-mono text-sm overflow-x-auto opacity-80">
-                            <div class="text-gray-400 mb-2">// Observer sees only 0x000</div>
-                            <div class="space-y-1">
-                                <div><span class="code-keyword">mapping</span>(<span class="code-type">address</span> => <span class="code-type">suint256</span>) <span class="code-keyword">balanceOf</span>;</div>
-                                <div class="mt-4"><span class="code-keyword">function</span> <span class="code-function">transfer</span>(<span class="code-type">address</span> to, <span class="code-type">suint256</span> amount) {</div>
-                                <div class="pl-4 text-red-400">// balanceOf[msg.sender]: 0x000</div>
-                                <div class="pl-4 text-red-400">// amount: 0x000</div>
-                                <div class="pl-4"><span class="code-keyword">balanceOf</span>[msg.sender] -= amount; <span class="code-comment">// 0x000 → 0x000</span></div>
-                                <div class="pl-4"><span class="code-keyword">balanceOf</span>[to] += amount; <span class="code-comment">// 0x000 → 0x000</span></div>
-                                <div>}</div>
-                            </div>
-                        </div>
-                        <p class="text-center text-sm font-medium text-red-700">Observer View ✗</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Common Mistakes Section -->
-    <section id="common-mistakes" class="py-24 px-6 bg-white/30">
-        <div class="max-w-6xl mx-auto">
-            <div class="text-center mb-16 reveal">
-                <h2 class="text-4xl font-semibold tracking-tight text-gray-900 mb-4">Common Mistakes</h2>
-                <p class="text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
-                    Avoid these pitfalls when working with shielded types in Seismic.
-                </p>
-            </div>
-
-            <div class="grid md:grid-cols-2 gap-6">
-                <!-- Mistake 1 -->
-                <div class="glass-card rounded-2xl p-8 border-l-4 border-red-400 hover-lift reveal">
-                    <div class="flex items-start gap-4">
-                        <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-                            <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                        </div>
-                        <div>
-                            <h3 class="text-lg font-semibold tracking-tight text-gray-900 mb-2">Public stype Variables</h3>
-                            <p class="text-gray-600 text-sm mb-3 leading-relaxed">stype variables cannot be declared as <code class="bg-red-50 text-red-700 px-1 rounded">public</code>. This would auto-generate a getter, exposing the shielded value.</p>
-                            <div class="bg-gray-900 rounded-lg p-3 font-mono text-xs">
-                                <div class="text-red-400">suint256 public balance; // ❌ Error</div>
-                                <div class="text-green-400 mt-1">suint256 private balance; // ✓ Correct</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Mistake 2 -->
-                <div class="glass-card rounded-2xl p-8 border-l-4 border-orange-400 hover-lift reveal" style="transition-delay: 100ms;">
-                    <div class="flex items-start gap-4">
-                        <div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
-                            <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
-                        </div>
-                        <div>
-                            <h3 class="text-lg font-semibold tracking-tight text-gray-900 mb-2">Returning stype</h3>
-                            <p class="text-gray-600 text-sm mb-3 leading-relaxed">stype cannot be returned from <code class="bg-orange-50 text-orange-700 px-1 rounded">public</code> or <code class="bg-orange-50 text-orange-700 px-1 rounded">external</code> functions.</p>
-                            <div class="bg-gray-900 rounded-lg p-3 font-mono text-xs">
-                                <div class="text-red-400">function get() external returns (suint) // ❌</div>
-                                <div class="text-green-400 mt-1">function get() external returns (uint) // ✓</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Mistake 3 -->
-                <div class="glass-card rounded-2xl p-8 border-l-4 border-yellow-400 hover-lift reveal" style="transition-delay: 200ms;">
-                    <div class="flex items-start gap-4">
-                        <div class="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center flex-shrink-0">
-                            <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                        </div>
-                        <div>
-                            <h3 class="text-lg font-semibold tracking-tight text-gray-900 mb-2">Casting stype</h3>
-                            <p class="text-gray-600 text-sm mb-3 leading-relaxed">Casting stype to uint/int <strong>leaks the hidden value</strong> in the execution trace. Use with extreme caution.</p>
-                            <div class="bg-gray-900 rounded-lg p-3 font-mono text-xs">
-                                <div class="text-yellow-400">uint256 public = uint256(svalue); // ⚠️ Leaks!</div>
-                                <div class="text-gray-400 mt-1">// Only cast when intentional disclosure is needed</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Mistake 4 -->
-                <div class="glass-card rounded-2xl p-8 border-l-4 border-purple-400 hover-lift reveal" style="transition-delay: 300ms;">
-                    <div class="flex items-start gap-4">
-                        <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
-                            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        </div>
-                        <div>
-                            <h3 class="text-lg font-semibold tracking-tight text-gray-900 mb-2">Constant stype</h3>
-                            <p class="text-gray-600 text-sm mb-3 leading-relaxed">stype cannot be <code class="bg-purple-50 text-purple-700 px-1 rounded">constant</code> or <code class="bg-purple-50 text-purple-700 px-1 rounded">immutable</code>. Constants are embedded in bytecode, which is public.</p>
-                            <div class="bg-gray-900 rounded-lg p-3 font-mono text-xs">
-                                <div class="text-red-400">suint constant MAX = 100; // ❌ Error</div>
-                                <div class="text-green-400 mt-1">suint max; // ✓ Use storage variable</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Live Linter Tool Section -->
-    <section id="linter" class="py-24 px-6">
-        <div class="max-w-7xl mx-auto">
-            <div class="text-center mb-12 reveal">
-                <h2 class="text-4xl font-semibold tracking-tight text-gray-900 mb-4">Live Linter Tool</h2>
-                <p class="text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
-                    Paste your Seismic Solidity code and instantly detect stype violations.
-                </p>
-            </div>
-
-            <div class="grid lg:grid-cols-2 gap-6">
-                <!-- Editor -->
-                <div class="glass-card rounded-2xl p-1 reveal">
-                    <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                        <div class="flex items-center justify-between mb-3">
-                            <div class="flex items-center gap-2">
-                                <div class="w-3 h-3 rounded-full bg-red-400"></div>
-                                <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
-                                <div class="w-3 h-3 rounded-full bg-green-400"></div>
-                            </div>
-                            <span class="text-xs font-mono text-gray-500">contract.sol</span>
-                        </div>
-                        <div id="monaco-editor"></div>
-                    </div>
-                </div>
-
-                <!-- Lint Report -->
-                <div class="glass-card rounded-2xl p-6 reveal" style="transition-delay: 100ms;">
-                    <div class="flex items-center justify-between mb-6">
-                        <h3 class="text-lg font-semibold tracking-tight text-gray-900">Lint Report</h3>
-                        <span id="issue-count" class="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600">Checking...</span>
-                    </div>
-                    
-                    <div id="lint-results" class="space-y-3 max-h-[500px] overflow-y-auto">
-                        <div class="flex items-center gap-3 p-4 rounded-xl bg-gray-50 border border-gray-100">
-                            <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                            </div>
-                            <p class="text-sm text-gray-600 leading-relaxed">Start typing to see analysis results...</p>
-                        </div>
-                    </div>
-
-                    <div class="mt-6 pt-6 border-t border-gray-200">
-                        <h4 class="text-sm font-semibold text-gray-700 mb-3">Rules Checked</h4>
-                        <div class="grid grid-cols-2 gap-2 text-xs">
-                            <div class="flex items-center gap-2">
-                                <div class="w-1.5 h-1.5 rounded-full bg-dusty-mauve"></div>
-                                <span class="text-gray-600">Public stype variables</span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <div class="w-1.5 h-1.5 rounded-full bg-dusty-mauve"></div>
-                                <span class="text-gray-600">Return stype from public</span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <div class="w-1.5 h-1.5 rounded-full bg-dusty-mauve"></div>
-                                <span class="text-gray-600">Casting stype to uint</span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <div class="w-1.5 h-1.5 rounded-full bg-dusty-mauve"></div>
-                                <span class="text-gray-600">Constant stype</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Why This Matters Section -->
-    <section id="why-matters" class="py-24 px-6 bg-white/30">
-        <div class="max-w-6xl mx-auto">
-            <div class="text-center mb-16 reveal">
-                <h2 class="text-4xl font-semibold tracking-tight text-gray-900 mb-4">Why This Matters</h2>
-                <p class="text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
-                    Seismic enables a new paradigm of encrypted computation on the blockchain.
-                </p>
-            </div>
-
-            <div class="grid md:grid-cols-3 gap-8">
-                <div class="text-center reveal">
-                    <div class="w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-dusty-mauve/20 to-dusty-mauve/40 flex items-center justify-center">
-                        <svg class="w-8 h-8 text-warm-brown" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-                    </div>
-                    <h3 class="text-xl font-semibold tracking-tight mb-3 text-gray-900">Encrypted State</h3>
-                    <p class="text-gray-600 leading-relaxed">
-                        Storage slots containing stype are encrypted. Observers see only <code class="text-warm-brown">0x000</code> values, ensuring complete confidentiality of contract state.
-                    </p>
-                </div>
-
-                <div class="text-center reveal" style="transition-delay: 100ms;">
-                    <div class="w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-warm-brown/20 to-warm-brown/40 flex items-center justify-center">
-                        <svg class="w-8 h-8 text-warm-brown" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                    </div>
-                    <h3 class="text-xl font-semibold tracking-tight mb-3 text-gray-900">Encrypted Memory</h3>
-                    <p class="text-gray-600 leading-relaxed">
-                        During execution, stype values in memory are shielded. Execution traces reveal computation logic but hide the actual values being processed.
-                    </p>
-                </div>
-
-                <div class="text-center reveal" style="transition-delay: 200ms;">
-                    <div class="w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-warm-beige/40 to-warm-beige/60 flex items-center justify-center">
-                        <svg class="w-8 h-8 text-warm-brown" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
-                    </div>
-                    <h3 class="text-xl font-semibold tracking-tight mb-3 text-gray-900">Controlled Flow</h3>
-                    <p class="text-gray-600 leading-relaxed">
-                        Data flows between encrypted and transparent states through explicit casting. Developers control exactly when privacy is preserved or intentionally revealed.
-                    </p>
-                </div>
-            </div>
-
-            <div class="mt-16 glass-card rounded-3xl p-8 md:p-12 reveal">
-                <div class="flex flex-col md:flex-row items-center gap-8">
-                    <div class="flex-1">
-                        <h3 class="text-2xl font-semibold tracking-tight mb-4 text-gray-900">Ready to build on Seismic?</h3>
-                        <p class="text-gray-600 mb-6 leading-relaxed">
-                            Start developing with shielded types today. The Seismic toolchain includes modified Solidity, Foundry, and Reth—everything you need for encrypted smart contract development.
-                        </p>
-                        <div class="flex gap-4">
-                            <a href="https://docs.seismic.systems/" target="_blank" class="px-6 py-3 bg-warm-brown text-white rounded-full font-medium hover:shadow-lg transition-all">
-                                Read Documentation
-                            </a>
-                            <a href="https://github.com/SeismicSystems/seismic-solidity" target="_blank" class="px-6 py-3 bg-white text-warm-brown border border-warm-brown/20 rounded-full font-medium hover:bg-gray-50 transition-all">
-                                View on GitHub
-                            </a>
-                        </div>
-                    </div>
-                    <div class="flex-1 w-full">
-                        <div class="bg-gray-900 rounded-xl p-6 font-mono text-sm">
-                            <div class="text-gray-400 mb-2">// Install Seismic toolchain</div>
-                            <div class="text-green-400">$ curl -L https://seismic.systems/install | bash</div>
-                            <div class="mt-4 text-gray-400">// Compile with sstype support</div>
-                            <div class="text-dusty-mauve">$ seismic-forge build</div>
-                            <div class="mt-4 text-gray-400">// Deploy to encrypted L1</div>
-                            <div class="text-dusty-mauve">$ seismic-forge script Deploy</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Footer -->
-    <footer class="py-12 px-6 border-t border-white/50">
-        <div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+        <!-- Header -->
+        <header class="flex justify-between items-center fade-enter" id="header">
             <div class="flex items-center gap-3">
-                <img src="logo.png" alt="Seismic" class="h-6 w-auto opacity-70" onerror="this.style.display='none'">
-                <span class="text-sm text-gray-500">© 2026 Seismic. All rights reserved.</span>
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-[#c4a8b8] to-[#5d3a58] shadow-lg"></div>
+                <span class="font-serif text-2xl tracking-wide text-[#1a1a1a]">Seismic Fortune</span>
             </div>
-            <div class="flex items-center gap-6 text-sm text-gray-500">
-                <a href="https://docs.seismic.systems/" target="_blank" class="hover:text-warm-brown transition-colors">Documentation</a>
-                <a href="https://github.com/SeismicSystems" target="_blank" class="hover:text-warm-brown transition-colors">GitHub</a>
-                <a href="https://twitter.com/SeismicSys" target="_blank" class="hover:text-warm-brown transition-colors">Twitter</a>
+            <nav class="hidden md:flex gap-8 text-sm font-light tracking-widest uppercase text-[#5d3a58]">
+                <a href="#" class="hover:text-[#1a1a1a] transition-colors">Mystery</a>
+                <a href="#" class="hover:text-[#1a1a1a] transition-colors">Archive</a>
+                <a href="#" class="hover:text-[#1a1a1a] transition-colors">Essence</a>
+            </nav>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-grow flex flex-col items-center justify-center text-center my-12 relative">
+            
+            <!-- Top Label -->
+            <div class="mb-6 fade-enter" style="transition-delay: 0.1s;">
+                <span class="font-serif italic text-[#8b5a7e] text-lg md:text-xl">The invisible layer</span>
             </div>
-        </div>
-    </footer>
+
+            <!-- Main Title -->
+            <h1 class="font-serif text-6xl md:text-8xl lg:text-9xl mb-6 tracking-tight text-[#1a1a1a] fade-enter" style="transition-delay: 0.2s;">
+                Seismic Fortune
+            </h1>
+
+            <!-- Subtitle -->
+            <p class="font-sans font-light text-[#5d3a58] text-lg md:text-xl mb-16 tracking-wide fade-enter" style="transition-delay: 0.3s;">
+                what you cannot see is always moving
+            </p>
+
+            <!-- Interactive Zone -->
+            <div class="relative w-full max-w-3xl mx-auto">
+                
+                <!-- The Button -->
+                <button id="revealBtn" class="magnetic-btn group relative px-10 py-5 bg-[#1a1a1a] text-white rounded-full font-sans text-sm tracking-[0.2em] uppercase overflow-hidden transition-all hover:shadow-2xl hover:scale-105 active:scale-95 fade-enter" style="transition-delay: 0.4s;">
+                    <span class="relative z-10 group-hover:text-[#f3e8e8] transition-colors">Reveal what is hidden today</span>
+                    <div class="absolute inset-0 bg-gradient-to-r from-[#5d3a58] to-[#8b5a7e] opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                </button>
+
+                <!-- Fortune Display Area -->
+                <div class="mt-16 min-h-[160px] flex flex-col items-center justify-center px-4">
+                    <div id="fortuneLabel" class="font-sans text-xs tracking-[0.3em] uppercase text-[#8b5a7e] mb-4 opacity-0 transition-opacity duration-700">
+                        Your Reading
+                    </div>
+                    <p id="fortuneText" class="font-serif text-3xl md:text-5xl text-[#5d3a58] leading-tight max-w-4xl opacity-0">
+                        <!-- Fortune appears here -->
+                    </p>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Footer -->
+        <footer class="flex flex-col md:flex-row justify-between items-center text-xs font-light tracking-widest text-[#8b5a7e] uppercase fade-enter" style="transition-delay: 0.5s;">
+            <div class="mb-4 md:mb-0">© 2026 Seismic Systems</div>
+            <div class="flex gap-6">
+                <a href="#" class="hover:text-[#1a1a1a] transition-colors">Privacy</a>
+                <a href="#" class="hover:text-[#1a1a1a] transition-colors">Terms</a>
+                <a href="#" class="hover:text-[#1a1a1a] transition-colors">Signal</a>
+            </div>
+        </footer>
+    </div>
 
     <script>
-        // Scroll reveal animation
-        const observerOptions = {
-            threshold: 0.1,
-            rootMargin: '0px 0px -50px 0px'
+        // --- 1. Three.js Crystal Background ---
+        const initThreeJS = () => {
+            const container = document.getElementById('canvas-container');
+            const scene = new THREE.Scene();
+            // Fog to blend into background color
+            scene.fog = new THREE.FogExp2(0xf3e8e8, 0.02);
+
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 5;
+
+            const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+
+            // Create multiple floating crystals
+            const crystals = [];
+            const geometry = new THREE.IcosahedronGeometry(1, 0);
+            const material = new THREE.MeshPhysicalMaterial({
+                color: 0xc4a8b8,
+                metalness: 0.1,
+                roughness: 0.2,
+                transmission: 0.6, // Glass-like
+                thickness: 0.5,
+                transparent: true,
+                opacity: 0.8,
+                clearcoat: 1.0,
+                clearcoatRoughness: 0.1
+            });
+
+            // Create a cluster of crystals
+            for (let i = 0; i < 15; i++) {
+                const mesh = new THREE.Mesh(geometry, material);
+                
+                // Random positioning
+                mesh.position.x = (Math.random() - 0.5) * 15;
+                mesh.position.y = (Math.random() - 0.5) * 15;
+                mesh.position.z = (Math.random() - 0.5) * 10 - 2; // Push back slightly
+                
+                // Random scale
+                const scale = Math.random() * 1.5 + 0.5;
+                mesh.scale.set(scale, scale, scale);
+                
+                // Random rotation speed
+                mesh.userData = {
+                    rotSpeed: {
+                        x: (Math.random() - 0.5) * 0.01,
+                        y: (Math.random() - 0.5) * 0.01
+                    },
+                    floatSpeed: Math.random() * 0.005 + 0.002,
+                    floatOffset: Math.random() * Math.PI * 2
+                };
+
+                scene.add(mesh);
+                crystals.push(mesh);
+            }
+
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const pointLight1 = new THREE.PointLight(0xffffff, 1);
+            pointLight1.position.set(5, 5, 5);
+            scene.add(pointLight1);
+
+            const pointLight2 = new THREE.PointLight(0x8b5a7e, 0.8); // Mauve tint
+            pointLight2.position.set(-5, -5, 5);
+            scene.add(pointLight2);
+
+            // Mouse interaction
+            let mouseX = 0;
+            let mouseY = 0;
+            let targetX = 0;
+            let targetY = 0;
+
+            const windowHalfX = window.innerWidth / 2;
+            const windowHalfY = window.innerHeight / 2;
+
+            document.addEventListener('mousemove', (event) => {
+                mouseX = (event.clientX - windowHalfX);
+                mouseY = (event.clientY - windowHalfY);
+            });
+
+            // Animation Loop
+            const clock = new THREE.Clock();
+
+            const animate = () => {
+                requestAnimationFrame(animate);
+                const time = clock.getElapsedTime();
+
+                targetX = mouseX * 0.001;
+                targetY = mouseY * 0.001;
+
+                crystals.forEach((crystal, i) => {
+                    // Rotation
+                    crystal.rotation.x += crystal.userData.rotSpeed.x;
+                    crystal.rotation.y += crystal.userData.rotSpeed.y;
+
+                    // Floating effect
+                    crystal.position.y += Math.sin(time + crystal.userData.floatOffset) * crystal.userData.floatSpeed;
+                    
+                    // Subtle mouse parallax
+                    crystal.rotation.x += 0.05 * (targetY - crystal.rotation.x);
+                    crystal.rotation.y += 0.05 * (targetX - crystal.rotation.y);
+                });
+
+                renderer.render(scene, camera);
+            };
+
+            animate();
+
+            // Resize handler
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
         };
 
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('active');
-                }
-            });
-        }, observerOptions);
+        // --- 2. Fortune Data (300 Lines) ---
+        const fortuneDatabase = [
+            "The ground beneath your feet remembers every step you haven't taken yet.",
+            "Value accumulates in the spaces between transactions.",
+            "Someone is watching the watcher. You are safe.",
+            "The ledger of your life is being written in invisible ink.",
+            "Quiet exchanges build the loudest empires.",
+            "What you hide today will bloom tomorrow.",
+            "Trust the friction; it is the precursor to movement.",
+            "A secret is just a truth waiting for its moment to vibrate.",
+            "The most significant shifts happen below the surface.",
+            "Your digital shadow is lighter than you think.",
+            "Encryption is the new intuition.",
+            "Wealth flows to those who master the art of silence.",
+            "The block is immutable, but your path is not.",
+            "Listen for the rumble before the quake.",
+            "Anonymous hands built the world you see.",
+            "Privacy is not secrecy; it is sovereignty.",
+            "The hash of your destiny is unique.",
+            "Movement in the dark is still movement.",
+            "Verify, then trust the silence.",
+            "Your data is a ghost; let it haunt the right places.",
+            "The fintech of the future values what cannot be seen.",
+            "A whispered transaction is worth a thousand shouts.",
+            "The foundation is shaking; build anyway.",
+            "Invisible activity creates visible impact.",
+            "You are the node you have been waiting for.",
+            "Secrets are the currency of the new world.",
+            "The chain is long, but your patience is longer.",
+            "What is encrypted is protected; what is protected is free.",
+            "The rumble you feel is opportunity aligning.",
+            "Not all treasure is meant to be displayed.",
+            "Your footprint is erased, but your impact remains.",
+            "Decentralize your thoughts. Centralize your power.",
+            "The void is not empty; it is full of potential.",
+            "Stake your claim in the unseen.",
+            "Liquidity is a state of mind.",
+            "The smart contract is with yourself.",
+            "Gas fees are the price of admission to the future.",
+            "Your private key is your true name.",
+            "Consensus is an illusion; conviction is real.",
+            "The dip is a distraction from the depth.",
+            "HODL your secrets close.",
+            "A wallet is just a pocket for digital souls.",
+            "The mempool is crowded, but your transaction is priority.",
+            "Oracles speak in riddles; listen carefully.",
+            "Yield is found in the gaps between attention.",
+            "The fork in the road is an upgrade.",
+            "Satoshi's ghost approves of your caution.",
+            "The nonce is the key to the lock that doesn't exist.",
+            "Burning tokens is a sacrifice to the gods of scarcity.",
+            "Your seed phrase is a poem only you can read.",
+            "The blockchain never sleeps, but it dreams of privacy.",
+            "A cold wallet is a warm heart.",
+            "The halving is coming for your doubts.",
+            "Miners dig for truth, not just gold.",
+            "The whitepaper was just the cover letter.",
+            "In cryptography we trust, all others pay cash.",
+            // Expanded Set 2
+            "The silence between blocks speaks volumes.",
+            "Your intuition is the best hardware wallet.",
+            "Dust transactions accumulate into mountains.",
+            "The validator of your reality is within.",
+            "Sharding your attention is the only way to see the whole.",
+            "The genesis block was just the beginning of your story.",
+            "Proof of stake requires proof of self.",
+            "The difficulty adjustment is life's way of keeping balance.",
+            "Atomic swaps happen in the mind before the chain.",
+            "Layer 2 is where the real connections happen.",
+            "The merkle root of existence is love.",
+            "Zero knowledge is infinite wisdom.",
+            "The mempool of your mind needs clearing.",
+            "Sidechains are just parallel lives.",
+            "The beacon chain guides lost ships home.",
+            "Slashing conditions apply to bad vibes only.",
+            "Finality is a state of grace.",
+            "The EVM runs on dreams and electricity.",
+            "Solidity is an illusion; fluidity is real.",
+            "Gas optimization is spiritual discipline.",
+            "The remix IDE of life requires constant debugging.",
+            "Mainnet is scary; testnet is practice.",
+            "Faucets drip with potential.",
+            "The testnet of your soul prepares for mainnet launch.",
+            "Block explorers reveal hidden paths.",
+            "The timestamp of now is all that matters.",
+            "Uncle blocks are just opportunities in disguise.",
+            "The DAG of destiny weaves complex patterns.",
+            "Ethash is the heartbeat of the machine.",
+            "Keccak-256 hides the universe in a hash.",
+            "The elliptic curve of fate bends toward justice.",
+            "Public keys open doors; private keys open vaults.",
+            "The base fee fluctuates; your worth does not.",
+            "EIP-1559 changed the game; you change the rules.",
+            "The merge was just the start of the transformation.",
+            "Sharding reality into manageable pieces.",
+            "The proposer of your next block is fate.",
+            "Attestations validate your existence.",
+            "Syncing with the chain takes time and patience.",
+            "The light client sees what others miss.",
+            "Full nodes carry the weight of history.",
+            "Archive nodes remember everything you forgot.",
+            "Pruning is necessary for growth.",
+            "The state trie grows deeper every day.",
+            "Patricia trees hide in plain sight.",
+            "RLP encoding compresses the complexity of being.",
+            "The yellow paper is a love letter to logic.",
+            "Byzantium fell but the code lives on.",
+            "Constantinople is a state of mind.",
+            "Istanbul connects east and west.",
+            "Berlin changed the rules; so can you.",
+            "London burned fees but not dreams.",
+            "Paris merged two worlds into one.",
+            "Shanghai unlocks potential.",
+            "Cancun clears the path forward.",
+            "Prague awaits with ancient wisdom.",
+            "The difficulty bomb was defused; your anxiety can be too.",
+            "Ice age is just a cooling off period.",
+            "Homesteading in the digital frontier.",
+            "Tangerine whistle blows for change.",
+            "Spurious dragon guards the gate.",
+            "DAO forks create new realities.",
+            "The bailout was a lesson in resilience.",
+            "Anti-ASIC resistance is anti-fragility.",
+            "ProgPoW was a protest; progress is inevitable.",
+            "The bomb delay gives us time to breathe.",
+            "Muir Glacier melts into possibility.",
+            "St. Petersburg holds secrets.",
+            "Istanbul bridges divide.",
+            "The berlin hard fork hardened resolve.",
+            "Arrow Glacier points the way.",
+            "Gray Glacier moves slowly but surely.",
+            "The merge beacon shines bright.",
+            "Capella opens the vaults.",
+            "Deneb brings light to darkness.",
+            "Electra energizes the network.",
+            "The verkle tree grows strange fruit.",
+            "Statelessness is freedom from burden.",
+            "The purge cleanses old wounds.",
+            "The splurge is coming; prepare accordingly.",
+            "Single slot finality brings peace.",
+            "Proposer builder separation divides labor.",
+            "MEV burns in the fires of justice.",
+            "The censorship resistance is strong with this one.",
+            "Distributed validators spread the risk.",
+            "Secret shared validators hide in plain sight.",
+            "The KZG ceremony bound us all.",
+            "Proto-danksharding is just the beginning.",
+            "Full danksharding awaits the patient.",
+            "EIP-4844 brings cheap data to the masses.",
+            "Blobs of data float through the ether.",
+            "The trusted setup is a social contract.",
+            "Polynomial commitments commit to truth.",
+            "The FFT transforms understanding.",
+            "Reed-Solomon codes correct errors.",
+            "The fraud proof is in the pudding.",
+            "Optimistic rollups assume the best.",
+            "ZK rollups prove the truth.",
+            "Validiums validate off-chain.",
+            "Volitions choose their own adventure.",
+            "The data availability layer is consciousness.",
+            "Celestia gazes down from above.",
+            "EigenLayer restakes the future.",
+            "Liquid staking derivatives flow like water.",
+            "The unbonding period tests patience.",
+            "Slashing protects the network from harm.",
+            "The withdrawal queue moves slowly.",
+            "Compounding rewards build empires.",
+            "The effective balance caps potential.",
+            "Exit queues prevent stampedes.",
+            "Activation queues test commitment.",
+            "The churn limit controls flow.",
+            "Epochs turn like pages in a book.",
+            "Slots pass in the blink of an eye.",
+            "Committees gather to decide.",
+            "The randao provides randomness.",
+            "VDFs delay for security.",
+            "ASICs centralize; GPUs democratize.",
+            "The 51% attack is a myth for the fearful.",
+            "Selfish mining reveals character.",
+            "The nothing at stake problem is solved.",
+            "Long range attacks fail against the stubborn.",
+            "Weak subjectivity requires social consensus.",
+            "The checkpoint is a moment of clarity.",
+            "Justification precedes finalization.",
+            "Inactivity leaks drain the inactive.",
+            "The inactivity score measures engagement.",
+            "Sync committees light the way.",
+            "The light client server provides truth.",
+            "Portal network opens new doors.",
+            "The history expires but the state remains.",
+            "State expiry is death and rebirth.",
+            "Address space extension expands horizons.",
+            "The verkle transition transforms everything.",
+            "State trees fall; verkle forests rise.",
+            "The execution layer executes will.",
+            "The consensus layer agrees on truth.",
+            "The engine API connects mind and body.",
+            "JWT secrets authenticate friends.",
+            "The deposit contract holds the stake.",
+            "Withdrawal credentials unlock the vault.",
+            "BLS signatures aggregate power.",
+            "The BLS12-381 curve bends reality.",
+            "Pairing friendly curves make friends.",
+            "The trusted setup is a sacred ritual.",
+            "Powers of tau bind the universe.",
+            "The ceremony transcript proves honesty.",
+            "Entropy gathers from chaos.",
+            "The random beacon guides us.",
+            "VRFs prove possession of secret knowledge.",
+            "Sortition selects the worthy.",
+            "The algorand consensus is pure.",
+            "Snowball consensus avalanches.",
+            "Tendermint tends to the fire.",
+            "Hotstuff is hot indeed.",
+            "The partially synchronous model is realistic.",
+            "Asynchronous consensus is the holy grail.",
+            "The FLP impossibility is a challenge.",
+            "Paxos made simple is still complex.",
+            "Raft floats on troubled waters.",
+            "PBFT tolerates the Byzantine.",
+            "The TPS race is a distraction.",
+            "Finality latency tests patience.",
+            "Block time is relative.",
+            "The uncle rate measures orphan sadness.",
+            "Ghost selects the heaviest chain.",
+            "LMD GHOST votes with recent memory.",
+            "Casper is friendly but final.",
+            "The FFG gadget slots into place.",
+            "Casper CBC is correct by construction.",
+            "The safety oracle watches all.",
+            "Plausible liveness keeps things moving.",
+            "Accountable safety blames the guilty.",
+            "The weak subjectivity checkpoint is a new beginning.",
+            "Validator rotation brings fresh eyes.",
+            "The dynasty changes; power shifts.",
+            "Nothing is finalized until it is.",
+            "Economic finality backs words with value.",
+            "The cost of corruption exceeds the cost of honesty.",
+            "Cryptoeconomic security is skin in the game.",
+            "The slashing condition enforces the social contract.",
+            "Bribe resistance is moral fiber.",
+            "The censorship resistance is the killer feature.",
+            "Liveness is a necessary evil.",
+            "Safety first; liveness second.",
+            "The CAP theorem constrains us all.",
+            "Partition tolerance is non-negotiable.",
+            "Consistency versus availability is the eternal trade.",
+            "Eventual consistency is good enough.",
+            "Strong consistency is a luxury.",
+            "Linearizability is the gold standard.",
+            "Serializability orders the chaos.",
+            "ACID properties preserve sanity.",
+            "BASE properties embrace chaos.",
+            "The blockchain trilemma bends but doesn't break.",
+            "Sharding scales the impossible.",
+            "Layer 2 escapes the main chain.",
+            "Bridges connect isolated islands.",
+            "Cross-chain messaging passes notes.",
+            "The interoperability protocol speaks many languages.",
+            "Atomic swaps exchange value trustlessly.",
+            "Hash time locked contracts lock time.",
+            "The preimage reveals the secret.",
+            "Timelocks delay gratification.",
+            "The sequence number orders events.",
+            "Nonces prevent replay attacks.",
+            "Chain ID distinguishes twins.",
+            "The network ID identifies tribes.",
+            "Devcon gathers the faithful.",
+            "EthCC celebrates in Paris.",
+            "The community is the true client.",
+            "Client diversity protects the network.",
+            "Geth guards the gateway.",
+            "Nethermind mines the Nether.",
+            "Besu is open for business.",
+            "Erigon erases the past.",
+            "Prysm prisms light into rainbows.",
+            "Lighthouse guides ships to shore.",
+            "Teku touches the sky.",
+            "Nimbus floats on clouds.",
+            "Lodestar guides the way.",
+            "Grandine grinds the stone.",
+            "The client diversity metric measures health.",
+            "Supermajority clients threaten security.",
+            "The bug bounty rewards the curious.",
+            "White hats protect the realm.",
+            "Black hats test the defenses.",
+            "Gray hats walk the line.",
+            "The exploit teaches the lesson.",
+            "The patch heals the wound.",
+            "The hard fork is a fresh start.",
+            "The soft fork is a gentle nudge.",
+            "The velvet fork is velvet indeed.",
+            "User activated soft forks empower the people.",
+            "Miner activated soft forks empower the miners.",
+            "The flag day is coming.",
+            "Activation blocks trigger change.",
+            "The threshold is reached; change begins.",
+            "Signaling bits indicate readiness.",
+            "Version bits vote for change.",
+            "The timeout expires; action required.",
+            "Lock-in periods prevent flip-flopping.",
+            "The grace period allows adaptation.",
+            "Deprecation warnings signal the end.",
+            "End of life is just a new beginning.",
+            "The archive lives on in IPFS.",
+            "Content addressing finds the immutable.",
+            "The merkle DAG grows forever.",
+            "IPFS is the permanent web.",
+            "Filecoin stores value in time.",
+            "Storj stores shards of secrets.",
+            "Sia seeds the cloud.",
+            "Arweave archives forever.",
+            "The permaweb remembers everything.",
+            "Ceramic molds mutable data.",
+            "ComposeDB queries the graph.",
+            "The data model defines reality.",
+            "Streams flow through time.",
+            "Anchoring roots trust in Ethereum.",
+            "The blockchain of blockchains secures all.",
+            "Polkadot connects the dots.",
+            "Kusama experiments wildly.",
+            "The parachain slot is precious.",
+            "The auction determines the winner.",
+            "Crowdloans pool resources.",
+            "The relay chain relays truth.",
+            "XCM passes messages across chains.",
+            "The HRMP channel is temporary.",
+            "XCMP is the future of messaging.",
+            "The collator collects transactions.",
+            "The fisherman fishes for fraud.",
+            "The nominator nominates validators.",
+            "The validator validates the state.",
+            "Bonding locks up commitment.",
+            "Unbonding tests resolve.",
+            "Slashing cuts deep.",
+            "Phragmen selects fairly.",
+            "NPOS is novel indeed.",
+            "The treasury funds the future.",
+            "Council members govern wisely.",
+            "Technical committees act fast.",
+            "Referenda let the people speak.",
+            "Conviction voting weights belief.",
+            "The adaptive quorum biasing adjusts.",
+            "Cancelation kills bad proposals.",
+            "Blacklisting bans the toxic.",
+            "The preimage stores the logic.",
+            "The hash references the unknown.",
+            "Seconding shows support.",
+            "Voting aye or nay decides.",
+            "The enactment period delays execution.",
+            "The launch period gathers candidates.",
+            "The voting period debates merits.",
+            "The confirmation period finalizes.",
+            "The minimum deposit filters spam.",
+            "The maximum block weight limits work.",
+            "The extrinsic is external.",
+            "The inherent is necessary.",
+            "Signed extensions add metadata.",
+            "The runtime upgrades itself.",
+            "Forkless upgrades are magical.",
+            "Wasm runs everywhere.",
+            "The host functions bridge worlds.",
+            "The storage proof proves presence.",
+            "The state root commits to data.",
+            "The extrinsic root commits to transactions.",
+            "The digest logs events.",
+            "Pre-runtime digests prepare the way.",
+            "Consensus digests record decisions.",
+            "Seal digests finalize blocks.",
+            "The block author takes credit.",
+            "The uncle author is forgotten.",
+            "The epoch changes; validators shuffle.",
+            "The era ends; rewards distribute.",
+            "The session manages keys.",
+            "The authority set rotates.",
+            "Grandpa finalizes the chain.",
+            "Babe produces the blocks.",
+            "Vrf proves the right to create.",
+            "The threshold determines eligibility.",
+            "The claim ticket wins the slot.",
+            "Secondary slots fill the gaps.",
+            "Empty blocks secure the chain.",
+            "The best chain is the longest.",
+            "The finalized chain is the safest.",
+            "The head of the chain moves forward.",
+            "The genesis is the beginning.",
+            "The leaf is the end... for now."
+        ];
 
-        document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-
-        // Monaco Editor Setup
-        let editor;
-        const defaultCode = `// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
-
-contract Token {
-    // ❌ Mistake 1: public stype
-    suint256 public balance;
-    
-    // ❌ Mistake 4: constant stype
-    suint256 constant MAX_SUPPLY = 1000000;
-    
-    mapping(address => suint256) private balances;
-    
-    // ❌ Mistake 2: returning stype from public function
-    function getBalance() public view returns (suint256) {
-        return balances[msg.sender];
-    }
-    
-    function transfer(address to, suint256 amount) public {
-        // ❌ Mistake 3: casting stype leaks value
-        uint256 publicAmount = uint256(amount);
-        
-        balances[msg.sender] -= amount;
-        balances[to] += amount;
-    }
-}`;
-
-        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});
-
-        require(['vs/editor/editor.main'], function() {
-            // Register Solidity language
-            monaco.languages.register({ id: 'solidity' });
+        // --- 3. Interaction Logic ---
+        const initInteractions = () => {
+            const btn = document.getElementById('revealBtn');
+            const fortuneText = document.getElementById('fortuneText');
+            const fortuneLabel = document.getElementById('fortuneLabel');
             
-            monaco.languages.setMonarchTokensProvider('solidity', {
-                tokenizer: {
-                    root: [
-                        [/\bpragma\s+solidity\b/, 'keyword'],
-                        [/\b(contract|interface|library|function|modifier|event|struct|enum)\b/, 'keyword'],
-                        [/\b(public|private|internal|external|view|pure|payable|constant|immutable)\b/, 'keyword'],
-                        [/\b(suint|sint|suint8|suint16|suint32|suint64|suint128|suint256|sint8|sint16|sint32|sint64|sint128|sint256|sbool|saddress)\b/, 'type'],
-                        [/\b(uint|int|uint8|uint16|uint32|uint64|uint128|uint256|int8|int16|int32|int64|int128|int256|bool|address|bytes|string)\b/, 'type'],
-                        [/\b(mapping|require|assert|revert|emit)\b/, 'keyword'],
-                        [/\b(msg|block|tx)\b/, 'variable.predefined'],
-                        [/\/\/.*$/, 'comment'],
-                        [/\/\*/, 'comment', '@comment'],
-                        [/"[^"]*"/, 'string'],
-                        [/'[^']*'/, 'string'],
-                        [/\b\d+\b/, 'number'],
-                        [/\b0x[a-fA-F0-9]+\b/, 'number.hex'],
-                    ],
-                    comment: [
-                        [/[^/*]+/, 'comment'],
-                        [/\*\//, 'comment', '@pop'],
-                        [/[/*]/, 'comment']
-                    ]
-                }
+            let isAnimating = false;
+
+            // Magnetic Button Effect
+            btn.addEventListener('mousemove', (e) => {
+                const rect = btn.getBoundingClientRect();
+                const x = e.clientX - rect.left - rect.width / 2;
+                const y = e.clientY - rect.top - rect.height / 2;
+                
+                btn.style.transform = `translate(${x * 0.2}px, ${y * 0.2}px) scale(1.05)`;
             });
 
-            monaco.editor.defineTheme('seismicTheme', {
-                base: 'vs',
-                inherit: true,
-                rules: [
-                    { token: 'keyword', foreground: '1F2937', fontStyle: 'bold' },
-                    { token: 'type', foreground: '1F2937' },
-                    { token: 'comment', foreground: '9CA3AF', fontStyle: 'italic' },
-                    { token: 'string', foreground: '374151' },
-                    { token: 'number', foreground: '1F2937' },
-                    { token: 'number.hex', foreground: '1F2937' },
-                ],
-                colors: {
-                    'editor.background': '#FFFFFF',
-                    'editor.lineHighlightBackground': '#FAF7F5',
-                    'editorLineNumber.foreground': '#C9A4B8',
-                    'editorLineNumber.activeForeground': '#8B6F61',
-                    'editor.selectionBackground': '#E8D8C3',
-                    'editor.inactiveSelectionBackground': '#F5EDE6',
-                }
+            btn.addEventListener('mouseleave', () => {
+                btn.style.transform = 'translate(0, 0) scale(1)';
             });
 
-            editor = monaco.editor.create(document.getElementById('monaco-editor'), {
-                value: defaultCode,
-                language: 'solidity',
-                theme: 'seismicTheme',
-                fontSize: 14,
-                fontFamily: 'JetBrains Mono, monospace',
-                minimap: { enabled: false },
-                scrollBeyondLastLine: false,
-                automaticLayout: true,
-                padding: { top: 16 },
-                lineNumbers: 'on',
-                renderLineHighlight: 'line',
-                matchBrackets: 'always',
-                tabSize: 4,
-                insertSpaces: true,
+            // Reveal Logic
+            btn.addEventListener('click', () => {
+                if (isAnimating) return;
+                isAnimating = true;
+
+                // Fade out current
+                fortuneText.style.opacity = '0';
+                fortuneText.style.transform = 'translateY(-10px)';
+                fortuneText.style.filter = 'blur(5px)';
+                
+                setTimeout(() => {
+                    // Get random fortune
+                    const randomFortune = fortuneDatabase[Math.floor(Math.random() * fortuneDatabase.length)];
+                    fortuneText.textContent = randomFortune;
+                    
+                    // Show label if first time
+                    if (fortuneLabel.style.opacity === '0' || !fortuneLabel.style.opacity) {
+                        fortuneLabel.style.opacity = '1';
+                    }
+
+                    // Fade in new
+                    fortuneText.classList.remove('fortune-reveal');
+                    void fortuneText.offsetWidth; // Trigger reflow
+                    fortuneText.classList.add('fortune-reveal');
+                    
+                    isAnimating = false;
+                }, 400);
             });
 
-            // Initial lint
-            lintCode(defaultCode);
+            // Initial fade in of UI elements
+            setTimeout(() => {
+                document.querySelectorAll('.fade-enter').forEach(el => {
+                    el.classList.add('fade-enter-active');
+                });
+            }, 100);
+        };
 
-            // Lint on change with debounce
-            let timeout;
-            editor.onDidChangeModelContent(() => {
-                clearTimeout(timeout);
-                timeout = setTimeout(() => {
-                    lintCode(editor.getValue());
-                }, 500);
-            });
+        // Initialize
+        window.addEventListener('DOMContentLoaded', () => {
+            initThreeJS();
+            initInteractions();
         });
-
-        // Two-Pass Static Analyzer
-        function lintCode(code) {
-            const issues = [];
-            const lines = code.split('\n');
-            
-            // Helper: Get line content without comments
-            function stripComments(line) {
-                return line.replace(/\/\/.*/, '').replace(/\/\*.*\*\//, '');
-            }
-            
-            // Helper: Check if line is inside a function (for context)
-            function isInsideFunction(startLine) {
-                let braceCount = 0;
-                let inFunction = false;
-                for (let i = 0; i <= startLine; i++) {
-                    const line = lines[i] || '';
-                    if (/\bfunction\b/.test(line) && !/\bfunction\b.*=>/.test(line)) {
-                        inFunction = true;
-                    }
-                    if (inFunction) {
-                        braceCount += (line.match(/\{/g) || []).length;
-                        braceCount -= (line.match(/\}/g) || []).length;
-                        if (braceCount <= 0 && i < startLine) {
-                            inFunction = false;
-                        }
-                    }
-                }
-                return inFunction;
-            }
-            
-            // ============================================
-            // PASS 1: Identify all stype variable declarations
-            // ============================================
-            const stypeVariables = []; // { name, line, type, isPublic, isConstant, context }
-            
-            const stypeTypePattern = /\b(suint|sint|sbool|saddress)(\d*)\b/;
-            
-            for (let i = 0; i < lines.length; i++) {
-                const line = lines[i];
-                const cleanLine = stripComments(line);
-                
-                // Skip if no stype keyword
-                if (!stypeTypePattern.test(cleanLine)) continue;
-                
-                // Extract stype type
-                const typeMatch = cleanLine.match(stypeTypePattern);
-                const stypeType = typeMatch[1] + (typeMatch[2] || '');
-                
-                // Pattern 1: State variable declaration
-                // Format: [stypeType] [visibility]? [constant]? [name] [= ...];
-                // Examples: suint256 public balance; suint256 constant MAX = 100;
-                const stateVarPattern = new RegExp(
-                    `\\b(suint|sint|sbool|saddress)(\\d*)\\s+` + // stype type
-                    `(?:(public|private|internal)\\s+)?` + // optional visibility
-                    `(?:(constant|immutable)\\s+)?` + // optional constant/immutable
-                    `([a-zA-Z_][a-zA-Z0-9_]*)` + // variable name
-                    `(?:\\s*=|;|\\s)` // terminator
-                );
-                
-                const stateMatch = cleanLine.match(stateVarPattern);
-                if (stateMatch) {
-                    const visibility = stateMatch[3] || '';
-                    const isConstant = stateMatch[4] === 'constant' || stateMatch[4] === 'immutable';
-                    const varName = stateMatch[5];
-                    
-                    stypeVariables.push({
-                        name: varName,
-                        line: i + 1,
-                        stype: stypeType,
-                        isPublic: visibility === 'public',
-                        isConstant: isConstant,
-                        isMapping: false,
-                        context: 'state'
-                    });
-                    continue;
-                }
-                
-                // Pattern 2: Mapping declaration
-                // Format: mapping(...) [visibility]? [name];
-                // Examples: mapping(address => suint256) public balanceOf;
-                const mappingPattern = /mapping\s*\([^)]*=>\s*(suint|sint|sbool|saddress)(\d*)\s*\)\s+(?:(public|private|internal)\s+)?([a-zA-Z_][a-zA-Z0-9_]*)/;
-                const mappingMatch = cleanLine.match(mappingPattern);
-                if (mappingMatch) {
-                    const mapStype = mappingMatch[1] + (mappingMatch[2] || '');
-                    const visibility = mappingMatch[3] || '';
-                    const varName = mappingMatch[4];
-                    
-                    stypeVariables.push({
-                        name: varName,
-                        line: i + 1,
-                        stype: mapStype,
-                        isPublic: visibility === 'public',
-                        isConstant: false,
-                        isMapping: true,
-                        context: 'state'
-                    });
-                    continue;
-                }
-                
-                // Pattern 3: Function parameter
-                // Format: function name(..., stypeType varName, ...)
-                // We need to check if we're inside function parameters
-                if (/\bfunction\b/.test(cleanLine)) {
-                    // Extract parameter list
-                    const paramsMatch = cleanLine.match(/function\s+\w+\s*\(([^)]*)\)/);
-                    if (paramsMatch) {
-                        const params = paramsMatch[1];
-                        // Find all stype parameters
-                        const paramPattern = /\b(suint|sint|sbool|saddress)(\d*)\s+(?:calldata\s+|memory\s+|storage\s+)?([a-zA-Z_][a-zA-Z0-9_]*)/g;
-                        let paramMatch;
-                        while ((paramMatch = paramPattern.exec(params)) !== null) {
-                            stypeVariables.push({
-                                name: paramMatch[3],
-                                line: i + 1,
-                                stype: paramMatch[1] + (paramMatch[2] || ''),
-                                isPublic: false,
-                                isConstant: false,
-                                isMapping: false,
-                                context: 'parameter'
-                            });
-                        }
-                    }
-                }
-                
-                // Pattern 4: Local variable declaration (inside function)
-                // Format: stypeType varName;
-                if (isInsideFunction(i)) {
-                    const localVarPattern = new RegExp(
-                        `\\b(suint|sint|sbool|saddress)(\\d*)\\s+` +
-                        `([a-zA-Z_][a-zA-Z0-9_]*)` +
-                        `(?:\\s*=|;|\\s)`
-                    );
-                    const localMatch = cleanLine.match(localVarPattern);
-                    if (localMatch) {
-                        stypeVariables.push({
-                            name: localMatch[3],
-                            line: i + 1,
-                            stype: localMatch[1] + (localMatch[2] || ''),
-                            isPublic: false,
-                            isConstant: false,
-                            isMapping: false,
-                            context: 'local'
-                        });
-                    }
-                }
-            }
-            
-            // ============================================
-            // PASS 2: Analyze rules using variable knowledge
-            // ============================================
-            
-            // Rule A: Public stype variables (state variables only, not parameters)
-            stypeVariables.forEach(variable => {
-                if (variable.context === 'state' && variable.isPublic) {
-                    issues.push({
-                        line: variable.line,
-                        type: 'error',
-                        message: `Public state variable with stype: "${variable.name}" (${variable.stype})`,
-                        rule: 'Public stype',
-                        fix: `Change visibility to private or internal`
-                    });
-                }
-            });
-            
-            // Rule D: Constant stype
-            stypeVariables.forEach(variable => {
-                if (variable.isConstant) {
-                    issues.push({
-                        line: variable.line,
-                        type: 'error',
-                        message: `stype cannot be constant or immutable: "${variable.name}" (${variable.stype})`,
-                        rule: 'Constant stype',
-                        fix: `Use a storage variable without constant/immutable`
-                    });
-                }
-            });
-            
-            // Rule B: Return stype from public/external functions
-            // Multi-line returns detection
-            for (let i = 0; i < lines.length; i++) {
-                const line = lines[i];
-                const cleanLine = stripComments(line);
-                
-                // Check if this is a function declaration
-                if (!/\bfunction\b/.test(cleanLine)) continue;
-                
-                // Check if function is public/external (before the opening brace)
-                const beforeBrace = cleanLine.split('{')[0];
-                const isPublicExternal = /\b(public|external)\b/.test(beforeBrace);
-                
-                if (!isPublicExternal) continue;
-                
-                // Check if this line contains 'returns'
-                if (!cleanLine.includes('returns')) continue;
-                
-                // Start collecting the returns block
-                let returnsContent = '';
-                let returnsStartLine = i;
-                let foundReturns = false;
-                let parenDepth = 0;
-                let j = i;
-                
-                // Process lines starting from the 'returns' line
-                while (j < lines.length) {
-                    const currentLine = stripComments(lines[j]);
-                    
-                    // Find 'returns' keyword if not yet found
-                    if (!foundReturns) {
-                        const returnsIndex = currentLine.indexOf('returns');
-                        if (returnsIndex !== -1) {
-                            foundReturns = true;
-                            returnsStartLine = j;
-                            // Start from after 'returns'
-                            const afterReturns = currentLine.substring(returnsIndex + 'returns'.length);
-                            
-                            // Look for opening paren
-                            const openParenIndex = afterReturns.indexOf('(');
-                            if (openParenIndex !== -1) {
-                                parenDepth = 1;
-                                returnsContent = afterReturns.substring(openParenIndex + 1);
-                                
-                                // Check if closing paren is on same line
-                                for (let k = 0; k < returnsContent.length; k++) {
-                                    if (returnsContent[k] === '(') parenDepth++;
-                                    if (returnsContent[k] === ')') {
-                                        parenDepth--;
-                                        if (parenDepth === 0) {
-                                            // Found complete returns on same line
-                                            const contentBeforeClose = returnsContent.substring(0, k);
-                                            if (stypeTypePattern.test(contentBeforeClose)) {
-                                                const stypeMatch = contentBeforeClose.match(stypeTypePattern);
-                                                issues.push({
-                                                    line: returnsStartLine + 1,
-                                                    type: 'error',
-                                                    message: `Cannot return stype "${stypeMatch[0]}" from public/external function`,
-                                                    rule: 'Return stype',
-                                                    fix: `Cast to unshielded type before returning`
-                                                });
-                                            }
-                                            j = lines.length; // Exit outer while
-                                            break;
-                                        }
-                                    }
-                                }
-                                if (parenDepth === 0) break; // Already processed
-                            } else {
-                                // No opening paren on same line, continue to next line
-                                j++;
-                                continue;
-                            }
-                        } else {
-                            // 'returns' not on this line (shouldn't happen given our check)
-                            break;
-                        }
-                    } else {
-                        // Already found 'returns', now collecting content
-                        for (let k = 0; k < currentLine.length; k++) {
-                            const char = currentLine[k];
-                            
-                            if (char === '(') parenDepth++;
-                            if (char === ')') {
-                                parenDepth--;
-                                if (parenDepth === 0) {
-                                    // Found closing paren, check all collected content
-                                    const fullContent = returnsContent + currentLine.substring(0, k);
-                                    if (stypeTypePattern.test(fullContent)) {
-                                        const stypeMatch = fullContent.match(stypeTypePattern);
-                                        issues.push({
-                                            line: returnsStartLine + 1,
-                                            type: 'error',
-                                            message: `Cannot return stype "${stypeMatch[0]}" from public/external function`,
-                                            rule: 'Return stype',
-                                            fix: `Cast to unshielded type before returning`
-                                        });
-                                    }
-                                    j = lines.length; // Exit outer while
-                                    break;
-                                }
-                            }
-                        }
-                        
-                        // Add current line content if we haven't closed yet
-                        if (parenDepth > 0) {
-                            returnsContent += currentLine;
-                        }
-                    }
-                    
-                    j++;
-                }
-            }
-            
-            // Rule C: Casting leaks
-            // Check if any stype variable name appears inside uint/int casts
-            const castPattern = /\b(uint|int)(\d*)\s*\(([^)]*)\)/g;
-            
-            for (let i = 0; i < lines.length; i++) {
-                const line = lines[i];
-                const cleanLine = stripComments(line);
-                
-                let castMatch;
-                while ((castMatch = castPattern.exec(cleanLine)) !== null) {
-                    const targetType = castMatch[1] + (castMatch[2] || '');
-                    const castContent = castMatch[3].trim();
-                    
-                    // Check if any stype variable is being cast
-                    stypeVariables.forEach(variable => {
-                        // Check for exact variable name or variable with array access/methods
-                        const varPattern = new RegExp(`\\b${variable.name}\\b`);
-                        if (varPattern.test(castContent)) {
-                            issues.push({
-                                line: i + 1,
-                                type: 'warning',
-                                message: `Casting stype "${variable.name}" (${variable.stype}) to ${targetType} leaks the hidden value`,
-                                rule: 'Casting leak',
-                                fix: `Ensure intentional disclosure is needed`
-                            });
-                        }
-                    });
-                }
-            }
-            
-            // Remove duplicate issues (same line, same rule)
-            const uniqueIssues = [];
-            const seen = new Set();
-            issues.forEach(issue => {
-                const key = `${issue.line}-${issue.rule}`;
-                if (!seen.has(key)) {
-                    seen.add(key);
-                    uniqueIssues.push(issue);
-                }
-            });
-            
-            displayResults(uniqueIssues);
-            highlightLines(uniqueIssues);
-        }
-
-        function displayResults(issues) {
-            const resultsContainer = document.getElementById('lint-results');
-            const countBadge = document.getElementById('issue-count');
-
-            if (issues.length === 0) {
-                countBadge.textContent = '✓ No issues';
-                countBadge.className = 'px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-700';
-                resultsContainer.innerHTML = `
-                    <div class="flex items-center gap-3 p-6 rounded-xl bg-green-50 border border-green-200">
-                        <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-                            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                        </div>
-                        <div>
-                            <p class="font-medium text-green-900">No stype issues found</p>
-                            <p class="text-sm text-green-700">Contract is safe for Seismic.</p>
-                        </div>
-                    </div>
-                `;
-            } else {
-                const errors = issues.filter(i => i.type === 'error').length;
-                const warnings = issues.filter(i => i.type === 'warning').length;
-                countBadge.textContent = `${errors} error${errors !== 1 ? 's' : ''}, ${warnings} warning${warnings !== 1 ? 's' : ''}`;
-                countBadge.className = 'px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-700';
-
-                resultsContainer.innerHTML = issues.map(issue => `
-                    <div class="flex items-start gap-3 p-4 rounded-xl ${issue.type === 'error' ? 'bg-red-50 border border-red-100' : 'bg-yellow-50 border border-yellow-100'} hover:shadow-md transition-shadow cursor-pointer" onclick="jumpToLine(${issue.line})">
-                        <div class="w-8 h-8 rounded-full ${issue.type === 'error' ? 'bg-red-100' : 'bg-yellow-100'} flex items-center justify-center flex-shrink-0">
-                            <svg class="w-4 h-4 ${issue.type === 'error' ? 'text-red-600' : 'text-yellow-600'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                ${issue.type === 'error' 
-                                    ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>'
-                                    : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>'
-                                }
-                            </svg>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-2 mb-1">
-                                <span class="text-xs font-mono ${issue.type === 'error' ? 'text-red-600' : 'text-yellow-600'}">Line ${issue.line}</span>
-                                <span class="text-xs px-2 py-0.5 rounded-full ${issue.type === 'error' ? 'bg-red-200 text-red-800' : 'bg-yellow-200 text-yellow-800'}">${issue.rule}</span>
-                            </div>
-                            <p class="text-sm font-medium text-gray-900 mb-1">${issue.message}</p>
-                            <p class="text-xs text-gray-500">Fix: ${issue.fix}</p>
-                        </div>
-                    </div>
-                `).join('');
-            }
-        }
-
-        function highlightLines(issues) {
-            if (!editor) return;
-            
-            const decorations = issues.map(issue => ({
-                range: new monaco.Range(issue.line, 1, issue.line, 1),
-                options: {
-                    isWholeLine: true,
-                    className: issue.type === 'error' ? 'error-line' : 'warning-line',
-                    glyphMarginClassName: issue.type === 'error' ? 'red-dot' : 'yellow-dot',
-                    overviewRuler: {
-                        color: issue.type === 'error' ? '#ef4444' : '#f59e0b',
-                        position: monaco.editor.OverviewRulerLane.Left
-                    }
-                }
-            }));
-
-            editor.deltaDecorations([], decorations);
-        }
-
-        function jumpToLine(line) {
-            if (editor) {
-                editor.revealLineInCenter(line);
-                editor.setPosition({ lineNumber: line, column: 1 });
-                editor.focus();
-            }
-        }
     </script>
 </body>
 </html>
